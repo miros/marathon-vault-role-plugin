@@ -1,0 +1,66 @@
+version: "3.3"
+
+services:
+  zookeeper:
+    image: garland/zookeeper
+    hostname: zookeeper
+    ports:
+      - 2181
+
+  mesos-master:
+    image: mesosphere/mesos-master:1.3.0
+    hostname: mesos-master
+    ports:
+      - 5050
+    links:
+      - zookeeper
+    environment:
+      - MESOS_CLUSTER=local
+      - MESOS_HOSTNAME=mesos-master.docker
+      - MESOS_QUORUM=1
+      - MESOS_ROLES=public
+      - MESOS_ZK=zk://zookeeper:2181/mesos
+
+  mesos-slave:
+    image: mesosphere/mesos-slave:1.3.0
+    hostname: mesos-slave
+    privileged: true
+    ports:
+      - 5051
+    links:
+      - zookeeper
+      - mesos-master
+    environment:
+      - MESOS_LOG_DIR=/var/log
+      - MESOS_MASTER=zk://zookeeper:2181/mesos
+      - MESOS_PORT=5051
+      - MESOS_WORK_DIR=/var/lib/mesos
+
+  marathon:
+    build:
+      context: .
+      dockerfile: Dockerfile.marathon
+      args:
+        - MARATHON_VERSION=${MARATHON_VERSION-v1.7.352}
+    ports:
+      - 8080
+    links:
+      - zookeeper
+      - mesos-master
+      - vault
+    environment:
+      - MARATHON_ZK=zk://zookeeper:2181/marathon
+      - MARATHON_MASTER=zk://zookeeper:2181/mesos
+      - MARATHON_MESOS_AUTHENTICATION_PRINCIPAL=marathon
+      - MARATHON_MESOS_ROLE=public
+#      - MARATHON_PLUGIN_DIR=/plugins
+#      - MARATHON_PLUGIN_CONF=/plugin-conf-test.json
+      - MARATHON_ENABLE_FEATURES=secrets
+
+  vault:
+    image: vault:0.9.6
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=test-root-token
+      - SKIP_SETCAP=true # suppressing Vault's IPC lock behavior which causes problems in Travis (see https://github.com/hashicorp/docker-vault/issues/24)
+    ports:
+      - 8200

@@ -72,6 +72,40 @@ compileTestKotlin {
     }
 }
 
+sourceSets {
+    integrationTests {
+        kotlin {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+            srcDir file('src/test-integration/kotlin')
+        }
+        resources.srcDirs += file('src/test-integration/resources')
+    }
+}
+
+configurations {
+    integrationTestsImplementation.extendsFrom testImplementation
+    integrationTestsRuntime.extendsFrom testRuntime
+}
+
+task testIntegration(type: Test) {
+    testClassesDirs= sourceSets.integrationTests.output.classesDirs
+    classpath = sourceSets.integrationTests.runtimeClasspath
+    outputs.upToDateWhen { false }
+
+    useJUnitPlatform {
+
+    }
+
+    testLogging {
+        events "started", "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        exceptionFormat "full"
+    }
+}
+
 shadowJar {
     archiveBaseName = "${rootProject.name}-uber"
 }

@@ -12,7 +12,7 @@ import play.api.libs.json.JsObject
 
 class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
-    val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     private lateinit var conf: PluginConf
     private lateinit var rootVault: VaultClient

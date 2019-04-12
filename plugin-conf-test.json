@@ -1,0 +1,12 @@
+{
+  "plugins": {
+    "marathon-vault-plugin": {
+      "plugin": "mesosphere.marathon.plugin.task.RunSpecTaskProcessor",
+      "implementation": "io.funbox.marathon.plugin.vault.VaultEnvPlugin",
+      "configuration": {
+        "vault_url": "http://vault:8200",
+        "token": "test-root-token"
+      }
+    }
+  }
+}

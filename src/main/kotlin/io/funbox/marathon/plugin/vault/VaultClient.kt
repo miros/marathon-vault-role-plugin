@@ -6,9 +6,11 @@ import java.time.Instant
 
 class VaultClient private constructor(
     private val options: Options,
-    private val vault: Vault,
+    vaultClient: Vault,
     private val validUntil: Instant
 ) {
+
+    private val vault = vaultClient.logical()
 
     // TODO add ssl related configs
     data class Options(
@@ -22,21 +24,21 @@ class VaultClient private constructor(
 
         const val VALIDITY_THRESHOLD_SEC = 60L
 
-        fun login(options: Options): VaultClient {
+        val NOW = { Instant.now() }
+
+        fun login(options: Options, clock: () -> Instant = NOW): VaultClient {
             val authResp = createVault(options).auth()
                 .loginByAppRole(options.roleID, options.secretID)
 
             return VaultClient(
                 options,
                 loginWithToken(options, authResp.authClientToken),
-                Instant.now().plusSeconds(authResp.authLeaseDuration)
+                clock().plusSeconds(authResp.authLeaseDuration)
             )
         }
 
         private fun loginWithToken(options: Options, token: String): Vault {
-            return createVault(options) {
-                it.token(token)
-            }
+            return createVault(options) { it.token(token) }
         }
 
         private fun createVault(options: Options, block: (VaultConfig) -> Unit = {}): Vault {
@@ -52,22 +54,20 @@ class VaultClient private constructor(
 
     }
 
-    fun refresh(): VaultClient {
-        if (isFresh()) {
+    fun refresh(clock: () -> Instant = NOW): VaultClient {
+        if (isFresh(clock)) {
             return this
         }
 
         return login(options)
     }
 
-    private fun isFresh() = validUntil.minusSeconds(VALIDITY_THRESHOLD_SEC).isBefore(Instant.now())
-
-    fun readSecrets(path: String) : Map<String, String> {
-        return vault.logical().read(path).data
+    fun readSecrets(path: String): Map<String, String> {
+        return vault.read(path).data
     }
 
-    fun listChildren(path: String) : List<String> {
-        return vault.logical().list(path)
+    fun listChildren(path: String): List<String> {
+        return vault.list(path)
     }
 
     fun loginAs(roleName: String): VaultClient {
@@ -76,13 +76,17 @@ class VaultClient private constructor(
         return login(options.copy(roleID = roleID, secretID = secretID))
     }
 
+    private fun isFresh(clock: () -> Instant): Boolean {
+        return validUntil.minusSeconds(VALIDITY_THRESHOLD_SEC).isBefore(clock())
+    }
+
     private fun getAppRoleID(roleName: String): String {
-        return vault.logical().write("/auth/approle/role/$roleName/role-id", emptyMap())
+        return vault.write("/auth/approle/role/$roleName/role-id", emptyMap())
             .data.getValue("role_id")
     }
 
     private fun generateSecretID(roleName: String): String {
-        return vault.logical().write("auth/approle/role/$roleName/secret-id", emptyMap())
+        return vault.write("auth/approle/role/$roleName/secret-id", emptyMap())
             .data.getValue("secret_id")
     }
 
