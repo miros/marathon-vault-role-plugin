@@ -15,23 +15,34 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private lateinit var conf: PluginConf
-    private lateinit var rootVault: VaultClient
+    private var rootVault: VaultClient? = null
 
     override fun initialize(marathonInfo: scala.collection.immutable.Map<String, Any>?, configuration: JsObject?) {
         conf = PluginConf.fromJson(Json(configuration))
-        rootVault = VaultClient.login(conf.vaultOptions)
+    }
+
+    // TODO add support for marathon secrets extension
+    // TODO delete secret id from vault at the end
+    // TODO concatenate paths smartly
+
+    // TODO a bit ugly; try something else
+    private fun freshVault() : VaultClient {
+        rootVault = if (rootVault == null) {
+            VaultClient.login(conf.vaultOptions)
+        } else {
+            rootVault!!.refresh()
+        }
+
+        return rootVault!!
     }
 
     override fun taskInfo(appSpec: ApplicationSpec, builder: Protos.TaskInfo.Builder) {
         try {
-
-            rootVault = rootVault.refresh()
-
             val appID = appSpec.id().toString()
             val appRole = roleNameForMarathonID(appID)
             val defaultSecretsPath = defaultSecretsPath(appID)
 
-            val vault = rootVault.loginAs(appRole)
+            val vault = freshVault().loginAs(appRole)
             val envs = envsFrom(vault, defaultSecretsPath)
 
             logger.info(
@@ -40,7 +51,7 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
             setEnvs(envs, builder)
         } catch (exc: VaultException) {
-            logger.error("error injecting vault secrets for appID:${appSpec.id()}", exc)
+            logger.error("VaultEnvPlugin error injecting vault secrets for appID:${appSpec.id()}", exc)
         }
     }
 
@@ -76,7 +87,7 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
     private fun defaultSecretsPath(marathonID: String) = conf.defaultSecretsPath + "/" + marathonID
 
-    private fun roleNameForMarathonID(marathonID: String) = marathonID.replace("/", "-")
+    private fun roleNameForMarathonID(marathonID: String) = marathonID.trimStart('/').replace("/", "-")
 
     private fun formatEnvName(prefix: String, name: String): String {
         return listOf(prefix, name).joinToString("_").toUpperCase()

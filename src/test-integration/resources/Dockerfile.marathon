@@ -1,0 +1,5 @@
+ARG MARATHON_VERSION
+FROM mesosphere/marathon:v${MARATHON_VERSION}
+
+ADD ./build/libs/best-marathon-vault-plugin-uber.jar /plugins/
+COPY ./src/test-integration/resources/plugin-conf-test.json /plugin-conf-test.json

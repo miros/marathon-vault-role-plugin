@@ -1,7 +1,13 @@
+
 plugins {
-    id 'scala'
-    id 'org.jetbrains.kotlin.jvm' version '1.3.21'
+    id "scala"
+    id "org.jetbrains.kotlin.jvm" version "1.3.21"
     id "com.github.johnrengelman.shadow" version "4.0.4"
+}
+
+ext {
+    marathonVersion = (System.getenv("MARATHON_VERSION") ?: "1.7.174")
+    mesosVersion = (System.getenv("MESOS_VERSION") ?: "1.7.1")
 }
 
 repositories {
@@ -10,32 +16,35 @@ repositories {
     maven { url "http://downloads.mesosphere.io/maven" }
 }
 
-
-jar {
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-}
-
 dependencies {
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
-    implementation 'org.scala-lang:scala-library:2.12.8'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation "org.scala-lang:scala-library:2.12.8"
 
     compileOnly "org.slf4j:slf4j-api:1.7.10"
-    compileOnly "mesosphere.marathon:plugin-interface_2.12:1.7.174"
+    compileOnly "mesosphere.marathon:plugin-interface_2.12:${marathonVersion}"
 
     implementation "com.bettercloud:vault-java-driver:4.0.0"
 
-    testImplementation('org.jetbrains.kotlin:kotlin-test') {
-        exclude group: 'junit'
+    testImplementation("org.jetbrains.kotlin:kotlin-test") {
+        exclude group: "junit"
     }
-    testImplementation('org.jetbrains.kotlin:kotlin-test-junit5') {
-        exclude group: 'junit'
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5") {
+        exclude group: "junit"
     }
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.0")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.4.0")
-    testRuntime("org.junit.platform:junit-platform-launcher:1.4.0")
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.4.0"
+    testRuntime "org.junit.jupiter:junit-jupiter-engine:5.4.0"
+    testRuntime "org.junit.platform:junit-platform-launcher:1.4.0"
 
-    testImplementation("org.assertj:assertj-core:3.12.1")
+    testImplementation "org.assertj:assertj-core:3.12.1"
+
+    testImplementation("org.testcontainers:testcontainers:1.11.1")
+    testImplementation("org.testcontainers:junit-jupiter:1.11.1")
+    testImplementation("ch.qos.logback:logback-classic:1.1.11")
+    testImplementation("com.mesosphere:marathon-client:0.6.2")
+    testImplementation("com.squareup.okhttp3:okhttp:3.14.1")
+    testImplementation("com.google.code.gson:gson:2.8.5")
+    testImplementation("org.awaitility:awaitility-kotlin:3.1.6")
 }
 
 
@@ -77,7 +86,7 @@ sourceSets {
         kotlin {
             compileClasspath += main.output + test.output
             runtimeClasspath += main.output + test.output
-            srcDir file('src/test-integration/kotlin')
+            srcDir 'src/test-integration/kotlin'
         }
         resources.srcDirs += file('src/test-integration/resources')
     }
@@ -92,6 +101,9 @@ task testIntegration(type: Test) {
     testClassesDirs= sourceSets.integrationTests.output.classesDirs
     classpath = sourceSets.integrationTests.runtimeClasspath
     outputs.upToDateWhen { false }
+
+    systemProperty "MARATHON_VERSION", marathonVersion
+    systemProperty "MESOS_VERSION", mesosVersion
 
     useJUnitPlatform {
 
@@ -111,3 +123,4 @@ shadowJar {
 }
 
 assemble.dependsOn(shadowJar)
+testIntegration.dependsOn(assemble)

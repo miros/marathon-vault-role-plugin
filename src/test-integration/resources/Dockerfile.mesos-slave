@@ -1,0 +1,4 @@
+ARG MESOS_VERSION
+FROM mesosphere/mesos-slave:${MESOS_VERSION}
+
+COPY server.py /server.py

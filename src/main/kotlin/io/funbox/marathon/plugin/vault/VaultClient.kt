@@ -2,15 +2,14 @@ package io.funbox.marathon.plugin.vault
 
 import com.bettercloud.vault.Vault
 import com.bettercloud.vault.VaultConfig
+import com.bettercloud.vault.api.Auth
 import java.time.Instant
 
 class VaultClient private constructor(
     private val options: Options,
-    vaultClient: Vault,
+    private val vault: Vault,
     private val validUntil: Instant
 ) {
-
-    private val vault = vaultClient.logical()
 
     // TODO add ssl related configs
     data class Options(
@@ -30,6 +29,8 @@ class VaultClient private constructor(
             val authResp = createVault(options).auth()
                 .loginByAppRole(options.roleID, options.secretID)
 
+            println("!!!!!!!!!!!!!!!!!!!!!!!! ${authResp.authPolicies}")
+
             return VaultClient(
                 options,
                 loginWithToken(options, authResp.authClientToken),
@@ -46,6 +47,7 @@ class VaultClient private constructor(
                 .address(options.url)
                 .openTimeout(options.timeout)
                 .readTimeout(options.timeout)
+                .engineVersion(1)
 
             block(config)
 
@@ -62,12 +64,16 @@ class VaultClient private constructor(
         return login(options)
     }
 
+    // TODO use v2 secrets api
+
     fun readSecrets(path: String): Map<String, String> {
-        return vault.read(path).data
+        // TODO make smart concatenation
+        return vault.logical().read("secrets/$path").data
     }
 
     fun listChildren(path: String): List<String> {
-        return vault.list(path)
+        // todo make smart concatenation
+        return vault.logical().list("secrets/$path")
     }
 
     fun loginAs(roleName: String): VaultClient {
@@ -81,12 +87,12 @@ class VaultClient private constructor(
     }
 
     private fun getAppRoleID(roleName: String): String {
-        return vault.write("/auth/approle/role/$roleName/role-id", emptyMap())
+        return vault.logical().write("auth/approle/role/$roleName/role-id", emptyMap())
             .data.getValue("role_id")
     }
 
     private fun generateSecretID(roleName: String): String {
-        return vault.write("auth/approle/role/$roleName/secret-id", emptyMap())
+        return vault.logical().write("auth/approle/role/$roleName/secret-id", emptyMap())
             .data.getValue("secret_id")
     }
 

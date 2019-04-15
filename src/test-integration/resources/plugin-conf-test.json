@@ -1,0 +1,15 @@
+{
+  "plugins": {
+    "marathon-vault-plugin": {
+      "plugin": "mesosphere.marathon.plugin.task.RunSpecTaskProcessor",
+      "implementation": "io.funbox.marathon.plugin.vault.VaultEnvPlugin",
+      "configuration": {
+        "vault_url": "http://vault:8200",
+        "vault_timeout": 1,
+        "role_id": "test-role-id",
+        "secret_id": "test-secret-id",
+        "default_secrets_path": "/mesos"
+      }
+    }
+  }
+}
