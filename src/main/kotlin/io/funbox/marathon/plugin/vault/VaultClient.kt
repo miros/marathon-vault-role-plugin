@@ -6,7 +6,7 @@ import com.bettercloud.vault.api.Auth
 import java.time.Instant
 
 class VaultClient private constructor(
-    private val options: Options,
+    val options: Options,
     private val vault: Vault,
     private val validUntil: Instant
 ) {
@@ -28,8 +28,6 @@ class VaultClient private constructor(
         fun login(options: Options, clock: () -> Instant = NOW): VaultClient {
             val authResp = createVault(options).auth()
                 .loginByAppRole(options.roleID, options.secretID)
-
-            println("!!!!!!!!!!!!!!!!!!!!!!!! ${authResp.authPolicies}")
 
             return VaultClient(
                 options,
@@ -56,6 +54,7 @@ class VaultClient private constructor(
 
     }
 
+    // TODO test this
     fun refresh(clock: () -> Instant = NOW): VaultClient {
         if (isFresh(clock)) {
             return this
@@ -68,12 +67,11 @@ class VaultClient private constructor(
 
     fun readSecrets(path: String): Map<String, String> {
         // TODO make smart concatenation
-        return vault.logical().read("secrets/$path").data
+        return vault.logical().read("secret/$path").data
     }
 
     fun listChildren(path: String): List<String> {
-        // todo make smart concatenation
-        return vault.logical().list("secrets/$path")
+        return vault.logical().list("secret/$path")
     }
 
     fun loginAs(roleName: String): VaultClient {
@@ -87,13 +85,20 @@ class VaultClient private constructor(
     }
 
     private fun getAppRoleID(roleName: String): String {
-        return vault.logical().write("auth/approle/role/$roleName/role-id", emptyMap())
+        return vault.logical().read("auth/approle/role/$roleName/role-id")
             .data.getValue("role_id")
     }
 
     private fun generateSecretID(roleName: String): String {
         return vault.logical().write("auth/approle/role/$roleName/secret-id", emptyMap())
             .data.getValue("secret_id")
+    }
+
+    fun logout(roleName: String, secretID: String) {
+        vault.logical().write(
+            "auth/approle/role/$roleName/secret-id/destroy",
+            mapOf("secret_id" to secretID)
+        )
     }
 
 }

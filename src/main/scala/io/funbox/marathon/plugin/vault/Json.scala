@@ -10,5 +10,6 @@ class Json(json: JsObject) {
 
   def get(path: String): Json = new Json(getValue(path).as[JsObject])
 
+  // TODO raise meaningfull error
   private def getValue(path: String) = (json \ path).get
 }

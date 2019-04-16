@@ -6,9 +6,10 @@
       "configuration": {
         "vault_url": "http://vault:8200",
         "vault_timeout": 1,
-        "role_id": "test-role-id",
-        "secret_id": "test-secret-id",
-        "default_secrets_path": "/mesos"
+        "plugin_role_id": "test-role-id",
+        "plugin_secret_id": "test-secret-id",
+        "role_prefix": "mesos",
+        "default_secrets_path": "mesos"
       }
     }
   }

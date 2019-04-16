@@ -36,15 +36,19 @@ dependencies {
     testRuntime "org.junit.jupiter:junit-jupiter-engine:5.4.0"
     testRuntime "org.junit.platform:junit-platform-launcher:1.4.0"
 
-    testImplementation "org.assertj:assertj-core:3.12.1"
 
-    testImplementation("org.testcontainers:testcontainers:1.11.1")
-    testImplementation("org.testcontainers:junit-jupiter:1.11.1")
     testImplementation("ch.qos.logback:logback-classic:1.1.11")
+
+    testImplementation("org.testcontainers:testcontainers:1.11.2")
+    testImplementation("org.testcontainers:junit-jupiter:1.11.2")
+    testImplementation("org.testcontainers:vault:1.11.2")
+
     testImplementation("com.mesosphere:marathon-client:0.6.2")
     testImplementation("com.squareup.okhttp3:okhttp:3.14.1")
     testImplementation("com.google.code.gson:gson:2.8.5")
-    testImplementation("org.awaitility:awaitility-kotlin:3.1.6")
+
+    testImplementation "org.assertj:assertj-core:3.12.1"
+    testImplementation "org.awaitility:awaitility-kotlin:3.1.6"
 }
 
 

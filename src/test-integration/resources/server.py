@@ -3,8 +3,9 @@ import socketserver
 from http import HTTPStatus
 import json
 import os
+import sys
 
-PORT = 8000
+port = int(sys.argv[1])
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -14,8 +15,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(bytes(json.dumps(dict(os.environ)), encoding='utf8'))
 
 
-httpd = socketserver.TCPServer(("", PORT), Handler)
-print("serving at port", PORT)
+httpd = socketserver.TCPServer(("", port), Handler)
+print("serving at port", port)
 
 httpd.serve_forever()
 
