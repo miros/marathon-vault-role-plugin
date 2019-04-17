@@ -9,13 +9,13 @@ Plugin uses vault approles both for itself (it knows how to renew its SecretId) 
 Role names for marathon applications are formed as following: `{role_prefix_from_config}-{marathon_app_id}`.
 
 For instance, when `role_prefix` is `mesos` and marathon app id is `/apps/my-doge-app`, Vault approle for application will be `mesos-apps-my-doge-app`.
-In case this role does not exist plugin will try to use `mesos-apps` (one level up marathon app id path) as vault approle.
+In case this role does not exist plugin will try to use `mesos-apps` as vault approle (one level up marathon app id path).
 
-*You need to create roles for you application in vault by yourself.*
+*You need to create roles in vault for you applications by yourself.*
 
 ## Default secrets path
 
-By default plugin injects all secrets defined in vault path: `/{default_secrets_path_from_config}/{marathon-app-id}/*` (but only one level deep - immediate children)
+By default plugin injects all secrets defined in vault path: `/{default_secrets_path_from_config}/{marathon-app-id}/*` (but only one level deep, immediate children)
 
 For instance, when `default_secrets_path=mesos` (in plugin config) and `marathon_app_id=/apps/my-doge-app`
 then secrets defined in vault path `/mesos/apps/my-doge-app/passwords` will be available as ENV variables `$PASSWORDS_SOME_KEY_NAME`, `$PASSWORDS_OTHER_KEY_NAME`, etc...
@@ -86,7 +86,7 @@ You will also need to start Marathon with the secrets feature being enabled. See
 
 ## Vault plugin role policy
 
-In order to work plugin role needs permissions to read AppIds and issue SecretIds for roles in your `role_prefix` (plugin config) path
+In order to work plugin role needs permissions to read AppIds and issue SecretIds for roles with your `role_prefix` path (plugin config)
 
 ```hcl
 path "auth/approle/role/role_prefix-*" {
