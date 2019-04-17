@@ -2,13 +2,16 @@ package io.funbox.marathon.plugin.vault
 
 import com.bettercloud.vault.VaultException
 import mesosphere.marathon.plugin.ApplicationSpec
+import mesosphere.marathon.plugin.EnvVarSecretRef
 import mesosphere.marathon.plugin.PodSpec
+import mesosphere.marathon.plugin.Secret
 import mesosphere.marathon.plugin.plugin.PluginConfiguration
 import mesosphere.marathon.plugin.task.RunSpecTaskProcessor
 import org.apache.mesos.Protos
 import org.apache.mesos.Protos.Environment.Variable
 import org.slf4j.LoggerFactory
 import play.api.libs.json.JsObject
+import scala.collection.JavaConverters
 
 class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
@@ -22,14 +25,36 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
     override fun taskInfo(appSpec: ApplicationSpec, builder: Protos.TaskInfo.Builder) {
         try {
-            val result = envReader.envsFor(appSpec.id().toString())
+
+            logger.info("!!!!!!!!!!!!!!!!!! ${customSecrets(appSpec)}")
+
+            val result = envReader.envsFor(appSpec.id().toString(), customSecrets(appSpec))
 
             logger.info("VaultEnvPlugin appID:${appSpec.id()} vars:[${result.envNames.joinToString(",")}]")
-            setEnvs(result.envs, builder)
+            setEnvs(result.allEnvs, builder)
 
         } catch (exc: VaultException) {
             logger.error("VaultEnvPlugin error injecting vault secrets for appID:${appSpec.id()}", exc)
         }
+    }
+
+    private fun customSecrets(appSpec: ApplicationSpec): Map<String, String> {
+        val definitions = JavaConverters.asJavaCollection(appSpec.env()).toList()
+
+        return definitions.mapNotNull { tuple ->
+            val envName = tuple._1
+            val value = tuple._2
+
+            if (value is EnvVarSecretRef) {
+                val secretRef = appSpec.secrets()[value.secret()]
+
+                secretRef.takeIf { it.isDefined }?.let {
+                    envName to it.get().source()
+                }
+            } else {
+                null
+            }
+        }.toMap()
     }
 
     private fun setEnvs(envs: Map<String, String>, builder: Protos.TaskInfo.Builder) {

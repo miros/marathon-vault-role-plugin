@@ -67,9 +67,9 @@ class EnvReaderTest {
             mapOf("some-secret-key" to "some-secret-value")
         )
 
-        val result = EnvReader(conf).envsFor(VaultTestContext.TEST_APP_NAME)
+        val result = EnvReader(conf).envsFor(VaultTestContext.TEST_APP_NAME, emptyMap())
 
-        assertThat(result.envs).containsAllEntriesOf(
+        assertThat(result.allEnvs).containsAllEntriesOf(
             mapOf(
                 "PASSWORDS_SOME_SECRET_KEY" to "some-secret-value",
                 "PASSWORDS_OTHER_SECRET_KEY" to "other-secret-value",
@@ -90,11 +90,28 @@ class EnvReaderTest {
             )
         )
 
-        val result = EnvReader(conf).envsFor("/some-namespace/test-app")
+        val result = EnvReader(conf).envsFor("/some-namespace/test-app", emptyMap())
 
-        assertThat(result.envs).containsEntry("PASSWORDS_SOME_SECRET_KEY", "some-secret-value")
+        assertThat(result.allEnvs).containsEntry("PASSWORDS_SOME_SECRET_KEY", "some-secret-value")
         assertThat(result.appRole).isEqualTo("mesos-some-namespace")
     }
 
+    @Test
+    fun `returns custom secrets`() {
+        vaultContext.init()
+
+        vaultContext.writeSecret(
+            "secret/mesos-custom/password",
+            mapOf(
+                "some-secret-key" to "some-secret-value"
+            )
+        )
+
+        val result = EnvReader(conf).envsFor("test-app", mapOf(
+            "SECRET_KEY" to "secret/mesos-custom/password@some-secret-key"
+        ))
+
+        assertThat(result.allEnvs).containsEntry("SECRET_KEY", "some-secret-value")
+    }
 
 }

@@ -7,10 +7,13 @@ class EnvReader(private val conf: PluginConf) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    // TODO add support for marathon secrets extension
-
-    data class Results(val envs: Map<String, String>, val appRole: String) {
-        val envNames = envs.keys
+    data class Envs(
+        val defaultEnvs: Map<String, String>,
+        val customEnvs: Map<String, String>,
+        val appRole: String
+    ) {
+        val envNames = defaultEnvs.keys + customEnvs.keys
+        val allEnvs = defaultEnvs + customEnvs
     }
 
     private var _rootVault: VaultClient? = null
@@ -22,15 +25,16 @@ class EnvReader(private val conf: PluginConf) {
             return _rootVault!!
         }
 
-    fun envsFor(appID: String): Results {
+    fun envsFor(appID: String, customSecrets: Map<String, String>): Envs {
         val appRole = roleFor(appID) ?: throw RuntimeException("no role in vault for appID:$appID")
         val defaultSecretsPath = defaultSecretsPath(appID)
 
-        val envs = rootVault.loginAs(appRole) { vault ->
-            envsFrom(vault, defaultSecretsPath)
-        }
+        return rootVault.loginAs(appRole) { vault ->
+            val defaultEnvs = envsForDefaultSecrets(vault, defaultSecretsPath)
+            val customEnvs = envsForCustomSecrets(vault, customSecrets)
 
-        return Results(envs, appRole)
+            Envs(defaultEnvs, customEnvs, appRole)
+        }
     }
 
     private fun roleFor(appID: String): String? {
@@ -49,7 +53,7 @@ class EnvReader(private val conf: PluginConf) {
         return null
     }
 
-    private fun envsFrom(vault: VaultClient, path: String): Map<String, String> {
+    private fun envsForDefaultSecrets(vault: VaultClient, path: String): Map<String, String> {
         return vault
             .listChildren(path)
             .filterNot(::isDirectory)
@@ -60,6 +64,16 @@ class EnvReader(private val conf: PluginConf) {
 
                 secrets + subSecrets
             }
+    }
+
+    private fun envsForCustomSecrets(vault: VaultClient, customSecrets: Map<String, String>): Map<String, String> {
+        return customSecrets.mapValues { (_, sel) -> tryReadSecret(vault, sel) }
+    }
+
+    private fun tryReadSecret(vault: VaultClient, selector: String): String {
+        val (path, name) = selector.split("@", limit = 2)
+        val secrets = vault.readSecrets(path)
+        return secrets[name] ?: ""
     }
 
     private fun isDirectory(path: String) = path.endsWith("/")

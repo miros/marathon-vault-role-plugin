@@ -2,9 +2,11 @@ package io.funbox.marathon.plugin.vault
 
 import com.google.gson.Gson
 import io.funbox.marathon.plugin.vault.helpers.VaultTestContext
+import mesosphere.dcos.client.model.Secret
 import mesosphere.marathon.client.Marathon
 import mesosphere.marathon.client.MarathonClient
 import mesosphere.marathon.client.model.v2.App
+import mesosphere.marathon.client.model.v2.SecretSource
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.assertj.core.api.Assertions.assertThat
@@ -75,9 +77,17 @@ class VaultEnvPluginTest {
             mapOf("some-secret-key" to "some-secret-value")
         )
 
+        vaultContext.writeSecret(
+            "secret/mesos-custom/password",
+            mapOf("some-secret-key" to "custom-secret-value")
+        )
+
         marathonClient().createApp(App().apply {
             id = VaultTestContext.TEST_APP_NAME
             cmd = "python3 /server.py $TEST_APP_PORT"
+            env = mapOf("CUSTOM_SECRET" to mapOf("secret" to "secret-ref"))
+            secrets =
+                mapOf("secret-ref" to SecretSource().apply { source = "secret/mesos-custom/password@some-secret-key" })
         })
 
         val testAppURL = getServiceURL("mesos-slave", TEST_APP_PORT)
@@ -86,6 +96,8 @@ class VaultEnvPluginTest {
         val envs = parseTestAppResponse(response!!)
 
         assertThat(envs).containsEntry("PASSWORDS_SOME_SECRET_KEY", "some-secret-value")
+        assertThat(envs).containsEntry("CUSTOM_SECRET", "custom-secret-value")
+
     }
 
     private fun tryURL(url: String): String? {
