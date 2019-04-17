@@ -1,5 +1,5 @@
 ARG MARATHON_VERSION
 FROM mesosphere/marathon:v${MARATHON_VERSION}
 
-ADD ./build/libs/best-marathon-vault-plugin.jar /plugins/
+ADD ./build/libs/marathon-vault-role-plugin.jar /plugins/
 COPY ./src/test-integration/resources/plugin-conf-test.json /plugin-conf-test.json
