@@ -7,6 +7,7 @@ import com.bettercloud.vault.VaultException
 import com.bettercloud.vault.api.Auth
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.time.Duration
 import java.time.Instant
 
 class VaultClient private constructor(
@@ -44,10 +45,16 @@ class VaultClient private constructor(
             val authResp = createVault(options).auth()
                 .loginByAppRole(options.roleID, options.secretID)
 
+            val leaseDuration = if (authResp.authLeaseDuration > 0) {
+                authResp.authLeaseDuration
+            } else {
+                Long.MAX_VALUE
+            }
+
             return VaultClient(
                 options,
                 loginWithToken(options, authResp.authClientToken),
-                clock().plusSeconds(authResp.authLeaseDuration)
+                clock().plusSeconds(leaseDuration)
             )
         }
 
@@ -83,13 +90,16 @@ class VaultClient private constructor(
 
     }
 
-    // TODO test this
     fun refresh(clock: () -> Instant = NOW): VaultClient {
         if (isFresh(clock)) {
             return this
         }
 
         return login(options)
+    }
+
+    fun isFresh(clock: () -> Instant = NOW): Boolean {
+        return validUntil.minusSeconds(VALIDITY_THRESHOLD_SEC).isAfter(clock())
     }
 
     fun readSecrets(path: String): Map<String, String> {
@@ -120,10 +130,6 @@ class VaultClient private constructor(
         val newClient = login(options.copy(roleID = roleID, secretID = secretID))
 
         return block(newClient).also { newClient.logout(roleName, secretID) }
-    }
-
-    private fun isFresh(clock: () -> Instant): Boolean {
-        return validUntil.minusSeconds(VALIDITY_THRESHOLD_SEC).isBefore(clock())
     }
 
     private fun getAppRoleID(roleName: String): String {
