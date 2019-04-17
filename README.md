@@ -1,6 +1,6 @@
 # Marathon Vault Plugin
 
-Plugin for [Marathon](https://mesosphere.github.io/marathon/) which injects secrets stored in [Vault](https://www.vaultproject.io/) via environment variables based on approle vault authorization.
+Plugin for [Marathon](https://mesosphere.github.io/marathon/) that injects secrets stored in [Vault](https://www.vaultproject.io/) via environment variables based on approle vault authorization.
 
 ## App roles
 
