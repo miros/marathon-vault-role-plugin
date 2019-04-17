@@ -1,5 +1,6 @@
 package io.funbox.marathon.plugin.vault
 
+import com.bettercloud.vault.VaultException
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 
@@ -8,16 +9,17 @@ class EnvReader(private val conf: PluginConf) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     data class Envs(
-        val defaultEnvs: Map<String, String>,
-        val customEnvs: Map<String, String>,
+        val defaultSecrets: Map<String, String>,
+        val customSecrets: Map<String, String>,
         val appRole: String
     ) {
-        val envNames = defaultEnvs.keys + customEnvs.keys
-        val allEnvs = defaultEnvs + customEnvs
+        val allNames = defaultSecrets.keys + customSecrets.keys
+        val allSecrets = defaultSecrets + customSecrets
     }
 
     private var _rootVault: VaultClient? = null
     private val rootVault: VaultClient
+        @Synchronized
         get() {
             _rootVault =
                 _rootVault?.refresh() ?: let { VaultClient.login(conf.vaultOptions) }
@@ -72,7 +74,14 @@ class EnvReader(private val conf: PluginConf) {
 
     private fun tryReadSecret(vault: VaultClient, selector: String): String {
         val (path, name) = selector.split("@", limit = 2)
-        val secrets = vault.readSecrets(path)
+
+        val secrets = try {
+            vault.readSecrets(path)
+        } catch (exc: VaultException) {
+            logger.warn("error reading secret selector:$selector", exc)
+            emptyMap<String, String>()
+        }
+
         return secrets[name] ?: ""
     }
 

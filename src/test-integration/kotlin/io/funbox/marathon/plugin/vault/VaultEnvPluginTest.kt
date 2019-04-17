@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.Awaitility.await
+import org.awaitility.Duration.FIVE_SECONDS
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
 import org.testcontainers.DockerClientFactory
@@ -91,8 +92,11 @@ class VaultEnvPluginTest {
         })
 
         val testAppURL = getServiceURL("mesos-slave", TEST_APP_PORT)
-
-        val response = await().ignoreExceptions().untilCallTo { tryURL(testAppURL) }.matches { it!!.isNotEmpty() }
+        val response = await()
+            .ignoreExceptions()
+            .timeout(FIVE_SECONDS)
+            .untilCallTo { tryURL(testAppURL) }
+            .matches { it!!.isNotEmpty() }
         val envs = parseTestAppResponse(response!!)
 
         assertThat(envs).containsEntry("PASSWORDS_SOME_SECRET_KEY", "some-secret-value")

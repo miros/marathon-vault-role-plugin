@@ -69,7 +69,7 @@ class EnvReaderTest {
 
         val result = EnvReader(conf).envsFor(VaultTestContext.TEST_APP_NAME, emptyMap())
 
-        assertThat(result.allEnvs).containsAllEntriesOf(
+        assertThat(result.allSecrets).containsAllEntriesOf(
             mapOf(
                 "PASSWORDS_SOME_SECRET_KEY" to "some-secret-value",
                 "PASSWORDS_OTHER_SECRET_KEY" to "other-secret-value",
@@ -92,7 +92,7 @@ class EnvReaderTest {
 
         val result = EnvReader(conf).envsFor("/some-namespace/test-app", emptyMap())
 
-        assertThat(result.allEnvs).containsEntry("PASSWORDS_SOME_SECRET_KEY", "some-secret-value")
+        assertThat(result.allSecrets).containsEntry("PASSWORDS_SOME_SECRET_KEY", "some-secret-value")
         assertThat(result.appRole).isEqualTo("mesos-some-namespace")
     }
 
@@ -107,11 +107,33 @@ class EnvReaderTest {
             )
         )
 
-        val result = EnvReader(conf).envsFor("test-app", mapOf(
-            "SECRET_KEY" to "secret/mesos-custom/password@some-secret-key"
-        ))
+        val result = EnvReader(conf).envsFor(
+            "test-app", mapOf(
+                "SECRET_KEY" to "secret/mesos-custom/password@some-secret-key"
+            )
+        )
 
-        assertThat(result.allEnvs).containsEntry("SECRET_KEY", "some-secret-value")
+        assertThat(result.allSecrets).containsEntry("SECRET_KEY", "some-secret-value")
+    }
+
+    @Test
+    fun `ignores missing default secrets`() {
+        vaultContext.init()
+        val result = EnvReader(conf).envsFor("test-app", mapOf())
+        assertThat(result.allSecrets).isEmpty()
+    }
+
+    @Test
+    fun `sets missing custom secrets to balnk string`() {
+        vaultContext.init()
+
+        val result = EnvReader(conf).envsFor(
+            "test-app", mapOf(
+                "SECRET_KEY" to "secret/mesos-custom/password@some-secret-key"
+            )
+        )
+
+        assertThat(result.customSecrets).containsEntry("SECRET_KEY", "")
     }
 
 }
