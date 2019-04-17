@@ -124,7 +124,7 @@ class EnvReaderTest {
     }
 
     @Test
-    fun `sets missing custom secrets to balnk string`() {
+    fun `sets missing custom secrets to blank string`() {
         vaultContext.init()
 
         val result = EnvReader(conf).envsFor(
