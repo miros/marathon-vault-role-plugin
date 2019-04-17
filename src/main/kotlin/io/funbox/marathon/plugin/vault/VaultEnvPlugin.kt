@@ -1,5 +1,6 @@
 package io.funbox.marathon.plugin.vault
 
+import com.bettercloud.vault.VaultException
 import mesosphere.marathon.plugin.ApplicationSpec
 import mesosphere.marathon.plugin.PodSpec
 import mesosphere.marathon.plugin.plugin.PluginConfiguration
@@ -20,8 +21,15 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
     }
 
     override fun taskInfo(appSpec: ApplicationSpec, builder: Protos.TaskInfo.Builder) {
-        val envs = envReader.envsFor(appSpec.id().toString())
-        setEnvs(envs, builder)
+        try {
+            val result = envReader.envsFor(appSpec.id().toString())
+
+            logger.info("VaultEnvPlugin appID:${appSpec.id()} vars:[${result.envNames.joinToString(",")}]")
+            setEnvs(result.envs, builder)
+
+        } catch (exc: VaultException) {
+            logger.error("VaultEnvPlugin error injecting vault secrets for appID:${appSpec.id()}", exc)
+        }
     }
 
     private fun setEnvs(envs: Map<String, String>, builder: Protos.TaskInfo.Builder) {

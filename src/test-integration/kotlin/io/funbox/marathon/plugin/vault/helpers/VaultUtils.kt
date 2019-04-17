@@ -4,19 +4,23 @@ import com.bettercloud.vault.Vault
 import com.bettercloud.vault.VaultConfig
 import com.bettercloud.vault.api.Logical
 
-object VaultUtils {
+class VaultTestContext(vaultURL: String) {
 
-    const val ROOT_TOKEN = "test-root-token"
+    companion object {
+        const val ROOT_TOKEN = "test-root-token"
 
-    private const val PLUGIN_POLICY = "plugin-policy"
-    private const val PLUGIN_ROLE = "test-role"
-    const val PLUGIN_ROLE_ID = "test-role-id"
-    const val PLUGIN_SECRET_ID = "test-secret-id"
+        private const val PLUGIN_POLICY = "plugin-policy"
+        private const val PLUGIN_ROLE = "test-role"
+        const val PLUGIN_ROLE_ID = "test-role-id"
+        const val PLUGIN_SECRET_ID = "test-secret-id"
 
-    const val TEST_APP_NAME = "test-app"
-    private const val TEST_APP_ROLE = "mesos-$TEST_APP_NAME"
+        const val TEST_APP_NAME = "test-app"
+        private const val TEST_APP_ROLE = "mesos-$TEST_APP_NAME"
+    }
 
-    fun vaultClient(url: String): Logical {
+    private val vaultClient = createVaultClient(vaultURL)
+
+    private fun createVaultClient(url: String): Logical {
         val config = VaultConfig()
             .address(url)
             .token(ROOT_TOKEN)
@@ -25,46 +29,53 @@ object VaultUtils {
         return Vault(config.build()).logical()
     }
 
-    fun createTestRoles(vault: Logical) {
-        vault.write("sys/auth/approle", mapOf("type" to "approle"))
-
-        createPluginRole(vault)
-        createTestAppRole(vault)
+    fun init() {
+        initPluginRoles()
+        createTestAppRole()
     }
 
-    private fun createPluginRole(vault: Logical) {
+    fun initPluginRoles() {
+        vaultClient.write("sys/auth/approle", mapOf("type" to "approle"))
+        createPluginRole()
+    }
 
-        createPluginPolicy(vault)
+    private fun createPluginRole() {
 
-        vault.write(
+        createPluginPolicy()
+
+        vaultClient.write(
             "auth/approle/role/$PLUGIN_ROLE",
             mapOf("policies" to "plugin-policy")
         )
 
-        vault.write(
+        vaultClient.write(
             "auth/approle/role/$PLUGIN_ROLE/role-id",
             mapOf("role_id" to PLUGIN_ROLE_ID)
         )
 
-        vault.write(
+        vaultClient.write(
             "auth/approle/role/$PLUGIN_ROLE/custom-secret-id",
             mapOf("secret_id" to PLUGIN_SECRET_ID)
         )
     }
 
-    private fun createPluginPolicy(vault: Logical) {
-        vault.write(
+    private fun createPluginPolicy() {
+        vaultClient.write(
             "sys/policy/$PLUGIN_POLICY", mapOf(
                 "policy" to javaClass.getResource("/test-policy.hcl").readText()
             )
         )
     }
 
-    private fun createTestAppRole(vault: Logical) {
-        vault.write(
-            "auth/approle/role/$TEST_APP_ROLE",
+    fun createTestAppRole(roleName: String = TEST_APP_ROLE) {
+        vaultClient.write(
+            "auth/approle/role/$roleName",
             mapOf("policies" to PLUGIN_POLICY)
         )
+    }
+
+    fun writeSecret(path: String, secrets: Map<String, String>) {
+        vaultClient.write(path, secrets)
     }
 
 }

@@ -1,22 +1,37 @@
 package io.funbox.marathon.plugin.vault
 
+import com.bettercloud.vault.SslConfig
 import com.bettercloud.vault.Vault
 import com.bettercloud.vault.VaultConfig
+import com.bettercloud.vault.VaultException
 import com.bettercloud.vault.api.Auth
+import org.slf4j.LoggerFactory
+import java.io.File
 import java.time.Instant
 
 class VaultClient private constructor(
-    val options: Options,
+    private val options: Options,
     private val vault: Vault,
     private val validUntil: Instant
 ) {
 
-    // TODO add ssl related configs
+    data class SSLOptions(
+        val verify: Boolean?,
+        val trustStoreFile: String?,
+        val keyStoreFile: String?,
+        val keyStorePassword: String?,
+        val pemFile: String?,
+        val pemUTF8: String?,
+        val clientPemFile: String?,
+        val clientKeyPemFile: String?
+    )
+
     data class Options(
         val url: String,
         val timeout: Int,
         val roleID: String,
-        val secretID: String
+        val secretID: String,
+        val ssl: SSLOptions? = null
     )
 
     companion object {
@@ -47,6 +62,20 @@ class VaultClient private constructor(
                 .readTimeout(options.timeout)
                 .engineVersion(1)
 
+            options.ssl?.let { opts ->
+                val ssl = SslConfig()
+
+                opts.verify?.let { ssl.verify(it) }
+                opts.trustStoreFile?.let { ssl.trustStoreFile(File(it)) }
+                opts.keyStoreFile?.let { ssl.keyStoreFile(File(it), opts.keyStorePassword ?: "") }
+                opts.pemFile?.let { ssl.pemFile(File(it)) }
+                opts.pemUTF8?.let { ssl.pemUTF8(it) }
+                opts.clientPemFile?.let { ssl.clientPemFile(File(it)) }
+                opts.clientKeyPemFile?.let { ssl.clientKeyPemFile(File(it)) }
+
+                config.sslConfig(ssl)
+            }
+
             block(config)
 
             return Vault(config.build())
@@ -63,21 +92,34 @@ class VaultClient private constructor(
         return login(options)
     }
 
-    // TODO use v2 secrets api
-
     fun readSecrets(path: String): Map<String, String> {
-        // TODO make smart concatenation
-        return vault.logical().read("secret/$path").data
+        return vault.logical().read(preparePath(path)).data
     }
 
     fun listChildren(path: String): List<String> {
-        return vault.logical().list("secret/$path")
+        return vault.logical().list(preparePath(path))
     }
 
-    fun loginAs(roleName: String): VaultClient {
+    fun roleExists(roleName: String): Boolean {
+        return try {
+            vault.logical().read("auth/approle/role/$roleName")
+            true
+        } catch (exc: VaultException) {
+            if (exc.httpStatusCode != 404) {
+                throw(exc)
+            }
+            false
+        }
+    }
+
+    private fun preparePath(path: String) = path.trim('/')
+
+    fun <T> loginAs(roleName: String, block: (VaultClient) -> T): T {
         val roleID = getAppRoleID(roleName)
         val secretID = generateSecretID(roleName)
-        return login(options.copy(roleID = roleID, secretID = secretID))
+        val newClient = login(options.copy(roleID = roleID, secretID = secretID))
+
+        return block(newClient).also { newClient.logout(roleName, secretID) }
     }
 
     private fun isFresh(clock: () -> Instant): Boolean {
@@ -94,7 +136,7 @@ class VaultClient private constructor(
             .data.getValue("secret_id")
     }
 
-    fun logout(roleName: String, secretID: String) {
+    private fun logout(roleName: String, secretID: String) {
         vault.logical().write(
             "auth/approle/role/$roleName/secret-id/destroy",
             mapOf("secret_id" to secretID)

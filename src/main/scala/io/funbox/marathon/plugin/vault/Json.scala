@@ -1,15 +1,42 @@
 package io.funbox.marathon.plugin.vault
 
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json._
 
 class Json(json: JsObject) {
 
-  def getStr(path: String): String = getValue(path).as[String]
+  def tryStr(path: String): String = getValue(path).as[String]
 
-  def getInt(path: String): Int = getValue(path).as[Int]
+  def tryInt(path: String): Int = getValue(path).as[Int]
 
-  def get(path: String): Json = new Json(getValue(path).as[JsObject])
+  def getStr(path: String): String = requireValue(path).as[String]
 
-  // TODO raise meaningfull error
-  private def getValue(path: String) = (json \ path).get
+  def getInt(path: String): Int = requireValue(path).as[Int]
+
+  def get(path: String): Json = {
+    val value = getValue(path)
+
+    if (value == null) {
+      return null
+    }
+
+    value.validate[JsObject] match {
+      case JsSuccess(obj, _) => new Json(obj)
+      case JsError(_) => null
+    }
+  }
+
+  private def getValue(path: String) = {
+    json \ path match {
+      case JsDefined(value) => value
+      case JsUndefined() => null
+    }
+  }
+
+  private def requireValue(path: String) = {
+    getValue(path) match {
+      case null => throw new RuntimeException(s"no value for config key:$path")
+      case value => value
+    }
+  }
+
 }

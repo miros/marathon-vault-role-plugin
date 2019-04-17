@@ -1,7 +1,7 @@
 package io.funbox.marathon.plugin.vault
 
 import com.google.gson.Gson
-import io.funbox.marathon.plugin.vault.helpers.VaultUtils
+import io.funbox.marathon.plugin.vault.helpers.VaultTestContext
 import mesosphere.marathon.client.Marathon
 import mesosphere.marathon.client.MarathonClient
 import mesosphere.marathon.client.model.v2.App
@@ -67,16 +67,16 @@ class VaultEnvPluginTest {
 
     @Test
     fun `sets env variables for marathon application`() {
-        val vault = VaultUtils.vaultClient(getServiceURL("vault", VAULT_PORT))
-        VaultUtils.createTestRoles(vault)
+        val vaultContext = VaultTestContext(getServiceURL("vault", VAULT_PORT))
+        vaultContext.init()
 
-        vault.write(
-            "secret/mesos/${VaultUtils.TEST_APP_NAME}/passwords",
+        vaultContext.writeSecret(
+            "secret/mesos/${VaultTestContext.TEST_APP_NAME}/passwords",
             mapOf("some-secret-key" to "some-secret-value")
         )
 
         marathonClient().createApp(App().apply {
-            id = VaultUtils.TEST_APP_NAME
+            id = VaultTestContext.TEST_APP_NAME
             cmd = "python3 /server.py $TEST_APP_PORT"
         })
 
