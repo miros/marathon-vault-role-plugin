@@ -49,7 +49,7 @@ Please consult the [Start Marathon with plugins](https://mesosphere.github.io/ma
 
 The plugin configuration JSON file will need to reference the Vault plugin as follows:
 
-```json
+```js
 {
   "plugins": {
     "marathon-vault-plugin": {
@@ -57,13 +57,23 @@ The plugin configuration JSON file will need to reference the Vault plugin as fo
       "implementation": "io.funbox.marathon.plugin.vault.VaultEnvPlugin",
       "configuration": {
         "vault_url": "http://your-vault-url:8200",
-        "vault_timeout": 1, // timeout in seconds for all vault api calls
+
+        // timeout in seconds for all vault api calls
+        "vault_timeout": 1,
+
         "plugin_role_id": "plugin-role-id",
         "plugin_secret_id": "plugin-secret-id",
-        "role_prefix": "mesos", // prefix for application roles
+
+        // prefix for application roles
+        "role_prefix": "mesos",
+
         "default_secrets_path": "/secret/mesos",
-        "ssl": { // Optional
-            "verify": "false", // don't use in production
+
+        // Optional
+        "ssl": {
+            // don't use in production
+            "verify": "false",
+
             "trust_store_file": "/path/to/truststore/file",
             "key_store_file": "/path/to/keystore/file",
             "key_store_password": "keystore_password",
