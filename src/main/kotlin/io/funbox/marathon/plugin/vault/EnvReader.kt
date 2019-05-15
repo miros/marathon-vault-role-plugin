@@ -90,8 +90,15 @@ class EnvReader(private val conf: PluginConf) {
     private fun defaultSecretsPath(marathonID: String) =
         Paths.get(conf.defaultSecretsPath, marathonID.trimStart('/')).toString()
 
-    private fun roleNameForMarathonID(marathonID: String) =
-        conf.rolePrefix + "-" + marathonID.trimStart('/').replace("/", "-")
+    private fun roleNameForMarathonID(marathonID: String): String {
+        val prefix = if (conf.rolePrefix.isBlank()) {
+            ""
+        } else {
+            conf.rolePrefix + "-"
+        }
+
+        return prefix + marathonID.trimStart('/').replace("/", "-")
+    }
 
     private fun formatEnvName(prefix: String, name: String): String {
         return "${prefix}_$name".replace("-", "_").toUpperCase()
