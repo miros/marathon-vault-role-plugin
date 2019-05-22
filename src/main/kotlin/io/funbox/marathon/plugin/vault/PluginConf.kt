@@ -23,7 +23,7 @@ data class PluginConf(
                             pemFile = it.tryStr("pem_file"),
                             pemUTF8 = it.tryStr("pem_utf8"),
                             clientPemFile = it.tryStr("client_pem_file"),
-                            clientKeyPemFile = it.tryStr("client_key_file")
+                            clientKeyPemFile = it.tryStr("client_key_pem_file")
                         )
                     }
                 ),
