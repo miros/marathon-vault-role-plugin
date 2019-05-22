@@ -17,7 +17,7 @@ repositories {
 }
 
 group = 'io.funbox'
-version = '0.0.2'
+version = '0.0.3'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
