@@ -6,6 +6,8 @@ import java.nio.file.Paths
 
 class EnvReader(private val conf: PluginConf) {
 
+    class NoVaultRoleEror(message: String) : Exception(message)
+
     private val logger = LoggerFactory.getLogger(javaClass)
 
     data class Envs(
@@ -28,7 +30,7 @@ class EnvReader(private val conf: PluginConf) {
         }
 
     fun envsFor(appID: String, customSecrets: Map<String, String>): Envs {
-        val appRole = roleFor(appID) ?: throw RuntimeException("no role in vault for appID:$appID")
+        val appRole = roleFor(appID) ?: throw NoVaultRoleEror("no role in vault for appID:$appID")
         val defaultSecretsPath = defaultSecretsPath(appID)
 
         return rootVault.loginAs(appRole) { vault ->

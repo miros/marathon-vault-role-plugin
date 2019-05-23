@@ -69,6 +69,8 @@ class VaultEnvPluginTest {
             Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(5))
         )
 
+
+
     @Test
     fun `sets env variables for marathon application`() {
         val vaultContext = VaultTestContext(getServiceURL("vault", VAULT_PORT))
@@ -103,6 +105,25 @@ class VaultEnvPluginTest {
         assertThat(envs).containsEntry("PASSWORDS_SOME_SECRET_KEY", "some-secret-value")
         assertThat(envs).containsEntry("CUSTOM_SECRET", "custom-secret-value")
 
+    }
+
+    @Test
+    fun `works when no vault roles for app are configured`() {
+        val vaultContext = VaultTestContext(getServiceURL("vault", VAULT_PORT))
+        vaultContext.initPluginRoles()
+
+        marathonClient().createApp(App().apply {
+            id = VaultTestContext.TEST_APP_NAME
+            cmd = "python3 /server.py $TEST_APP_PORT"
+        })
+
+        val testAppURL = getServiceURL("mesos-slave", TEST_APP_PORT)
+
+        await()
+            .ignoreExceptions()
+            .timeout(TEN_SECONDS)
+            .untilCallTo { tryURL(testAppURL) }
+            .matches { it!!.isNotEmpty() }
     }
 
     private fun tryURL(url: String): String? {
