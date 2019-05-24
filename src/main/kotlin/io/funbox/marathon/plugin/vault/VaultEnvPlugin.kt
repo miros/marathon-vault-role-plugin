@@ -23,6 +23,11 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
     }
 
     override fun taskInfo(appSpec: ApplicationSpec, builder: Protos.TaskInfo.Builder) {
+        logger.info(
+            "VaultEnvPlugin triggered for appID:{}",
+            appSpec.id()
+        )
+
         try {
             val result = envReader.envsFor(appSpec.id().toString(), customSecrets(appSpec))
 
