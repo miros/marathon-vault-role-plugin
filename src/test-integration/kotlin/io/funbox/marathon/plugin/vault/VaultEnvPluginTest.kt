@@ -47,7 +47,8 @@ class VaultEnvPluginTest {
         .withEnv(
             mapOf(
                 "MESOS_VERSION" to System.getProperty("MESOS_VERSION"),
-                "MARATHON_VERSION" to System.getProperty("MARATHON_VERSION")
+                "MARATHON_VERSION" to System.getProperty("MARATHON_VERSION"),
+                "VAULT_VERSION" to System.getProperty("VAULT_VERSION")
             )
         )
         .withLocalCompose(true)
@@ -68,7 +69,6 @@ class VaultEnvPluginTest {
             "marathon", MARATHON_PORT,
             Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(5))
         )
-
 
 
     @Test

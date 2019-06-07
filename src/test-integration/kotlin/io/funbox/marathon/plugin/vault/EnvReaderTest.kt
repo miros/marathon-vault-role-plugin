@@ -17,7 +17,7 @@ class EnvReaderTest {
         const val VAULT_PORT = 8200
     }
 
-    class KVaultContainer : VaultContainer<KVaultContainer>("vault:0.9.6")
+    class KVaultContainer : VaultContainer<KVaultContainer>("vault:${System.getProperty("VAULT_VERSION")}")
 
     @Container
     private val vaultContainer = KVaultContainer()

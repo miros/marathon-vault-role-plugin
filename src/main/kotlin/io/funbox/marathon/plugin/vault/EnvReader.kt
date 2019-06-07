@@ -6,7 +6,7 @@ import java.nio.file.Paths
 
 class EnvReader(private val conf: PluginConf) {
 
-    class NoVaultRoleEror(message: String) : Exception(message)
+    class NoVaultRoleError(message: String) : Exception(message)
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -30,8 +30,10 @@ class EnvReader(private val conf: PluginConf) {
         }
 
     fun envsFor(appID: String, customSecrets: Map<String, String>): Envs {
-        val appRole = roleFor(appID) ?: throw NoVaultRoleEror("no role in vault for appID:$appID")
+        val appRole = roleFor(appID) ?: throw NoVaultRoleError("no role in vault for appID:$appID")
         val defaultSecretsPath = defaultSecretsPath(appID)
+
+        logger.info("VaultEnvPlugin default secrets path:$defaultSecretsPath")
 
         return rootVault.loginAs(appRole) { vault ->
             val defaultEnvs = envsForDefaultSecrets(vault, defaultSecretsPath)
@@ -58,12 +60,18 @@ class EnvReader(private val conf: PluginConf) {
     }
 
     private fun envsForDefaultSecrets(vault: VaultClient, path: String): Map<String, String> {
-        return vault
-            .listChildren(path)
+        val children = vault.listChildren(path)
+        logger.info("VaultEnvPlugin listing children for path:$path children:${children.joinToString(",")}")
+
+        return children
             .filterNot(::isDirectory)
             .fold(emptyMap()) { secrets, resource ->
+                val subpath = "$path/$resource"
+
+                logger.info("VaultEnvPlugin reading secrets from path:$subpath")
+
                 val subSecrets = vault
-                    .readSecrets("$path/$resource")
+                    .readSecrets(subpath)
                     .mapKeys { formatEnvName(resource, it.key) }
 
                 secrets + subSecrets

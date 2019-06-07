@@ -67,28 +67,12 @@ The plugin configuration JSON file will need to reference the Vault plugin as fo
         // prefix for application roles
         "role_prefix": "mesos",
 
-        "default_secrets_path": "/secret/mesos",
-
-        // Optional
-        "ssl": {
-            // don't use in production
-            "verify": "false",
-
-            "trust_store_file": "/path/to/truststore/file",
-            "key_store_file": "/path/to/keystore/file",
-            "key_store_password": "keystore_password",
-            "pem_file": "/path/to/pem/file",
-            "pem_utf8": "string contents extracted from the PEM file",
-            "client_pem_file": "/path/to/client/pem/file",
-            "client_key_pem_file": "/path/to/client/pem/file"
-        }
+        "default_secrets_path": "/secret/mesos"
       }
     }
   }
 }
 ```
-
-The `ssl` section is optional and it directly configures [the underlying Vault client](https://github.com/BetterCloud/vault-java-driver#ssl-config) but only the options documented here are passed through.
 
 You will also need to start Marathon with the secrets feature being enabled. See [Marathon command line flags](https://mesosphere.github.io/marathon/docs/command-line-flags) for more details. In short, it can be enabled by
 * specifying `--enable_features secrets` in Marathon command line

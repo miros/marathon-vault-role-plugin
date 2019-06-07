@@ -1,38 +1,28 @@
 package io.funbox.marathon.plugin.vault
 
-import com.bettercloud.vault.SslConfig
 import com.bettercloud.vault.Vault
 import com.bettercloud.vault.VaultConfig
 import com.bettercloud.vault.VaultException
-import com.bettercloud.vault.api.Auth
-import org.slf4j.LoggerFactory
-import java.io.File
-import java.time.Duration
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.net.URL
 import java.time.Instant
+import java.util.concurrent.TimeUnit
+import kotlinx.serialization.*
+import kotlinx.serialization.json.Json
 
 class VaultClient private constructor(
     private val options: Options,
     private val vault: Vault,
+    private val token: String,
     private val validUntil: Instant
 ) {
-
-    data class SSLOptions(
-        val verify: Boolean?,
-        val trustStoreFile: String?,
-        val keyStoreFile: String?,
-        val keyStorePassword: String?,
-        val pemFile: String?,
-        val pemUTF8: String?,
-        val clientPemFile: String?,
-        val clientKeyPemFile: String?
-    )
 
     data class Options(
         val url: String,
         val timeout: Int,
         val roleID: String,
-        val secretID: String,
-        val ssl: SSLOptions? = null
+        val secretID: String
     )
 
     companion object {
@@ -54,6 +44,7 @@ class VaultClient private constructor(
             return VaultClient(
                 options,
                 loginWithToken(options, authResp.authClientToken),
+                authResp.authClientToken,
                 clock().plusSeconds(leaseDuration)
             )
         }
@@ -69,19 +60,6 @@ class VaultClient private constructor(
                 .readTimeout(options.timeout)
                 .engineVersion(1)
 
-            options.ssl?.let { opts ->
-                val ssl = SslConfig()
-
-                opts.verify?.let { ssl.verify(it) }
-                opts.trustStoreFile?.let { ssl.trustStoreFile(File(it)) }
-                opts.keyStoreFile?.let { ssl.keyStoreFile(File(it), opts.keyStorePassword ?: "") }
-                opts.pemFile?.let { ssl.pemFile(File(it)) }
-                opts.pemUTF8?.let { ssl.pemUTF8(it) }
-                opts.clientPemFile?.let { ssl.clientPemFile(File(it)) }
-                opts.clientKeyPemFile?.let { ssl.clientKeyPemFile(File(it)) }
-
-                config.sslConfig(ssl)
-            }
 
             block(config)
 
@@ -89,6 +67,19 @@ class VaultClient private constructor(
         }
 
     }
+
+    private val httpClient = OkHttpClient.Builder()
+        .callTimeout(options.timeout.toLong(), TimeUnit.SECONDS)
+        .build()
+
+
+    private val apiURL = URL(URL(options.url), "v1")
+
+    @Serializable
+    data class VaultReply<T>(val data: T)
+
+    @Serializable
+    data class ListData(val keys: List<String> = emptyList())
 
     fun refresh(clock: () -> Instant = NOW): VaultClient {
         if (isFresh(clock)) {
@@ -107,7 +98,15 @@ class VaultClient private constructor(
     }
 
     fun listChildren(path: String): List<String> {
-        return vault.logical().list(preparePath(path))
+        return try {
+            callVault<ListData>(preparePath(path), "LIST", ListData.serializer()).keys
+        } catch (exc: VaultException) {
+            if (exc.httpStatusCode == 404) {
+                emptyList()
+            } else {
+                throw(exc)
+            }
+        }
     }
 
     fun roleExists(roleName: String): Boolean {
@@ -147,6 +146,29 @@ class VaultClient private constructor(
             "auth/approle/role/$roleName/secret-id/destroy",
             mapOf("secret_id" to secretID)
         )
+    }
+
+    private fun <T> callVault(path: String, method: String, serializer: KSerializer<T>): T {
+        val request = Request.Builder()
+            .url(appendURL(apiURL, path))
+            .header("X-Vault-Token", token)
+            .method(method, null)
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+
+        if (!response.isSuccessful) {
+            throw VaultException(
+                "Vault responded with HTTP status code: ${response.code()} body:${response.body()?.string()}",
+                response.code()
+            )
+        }
+
+        return Json.nonstrict.parse(VaultReply.serializer(serializer), response.body()!!.string()).data
+    }
+
+    private fun appendURL(url: URL, vararg parts: String): URL {
+        return url.toURI().resolve(url.path + "/" + parts.joinToString("/")).toURL()
     }
 
 }

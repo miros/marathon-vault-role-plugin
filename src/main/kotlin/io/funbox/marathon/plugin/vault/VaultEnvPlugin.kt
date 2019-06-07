@@ -33,8 +33,8 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
             logger.info(
                 "injecting vault secrets for appID:{} appRole:{} secrets:{}",
-                result.appRole,
                 appSpec.id(),
+                result.appRole,
                 result.allNames.joinToString(",")
             )
 
@@ -42,7 +42,7 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
         } catch (exc: VaultException) {
             logger.warn("error injecting vault secrets for appID:${appSpec.id()}", exc)
-        } catch (exc: EnvReader.NoVaultRoleEror) {
+        } catch (exc: EnvReader.NoVaultRoleError) {
             logger.warn("secrets not injected appID:${appSpec.id()}", exc)
         }
     }
