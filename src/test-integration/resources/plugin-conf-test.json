@@ -9,7 +9,7 @@
         "plugin_role_id": "test-role-id",
         "plugin_secret_id": "test-secret-id",
         "role_prefix": "mesos",
-        "default_secrets_path": "/secret/mesos"
+        "default_secrets_path": "/secrets_v1/mesos"
       }
     }
   }

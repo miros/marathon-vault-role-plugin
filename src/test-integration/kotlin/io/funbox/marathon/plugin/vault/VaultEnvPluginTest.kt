@@ -15,6 +15,7 @@ import org.awaitility.Duration.FIVE_SECONDS
 import org.awaitility.Duration.TEN_SECONDS
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
+import org.junit.jupiter.api.BeforeAll
 import org.testcontainers.DockerClientFactory
 import org.testcontainers.containers.DockerComposeContainer
 import org.testcontainers.containers.wait.strategy.Wait
@@ -23,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import java.io.File
 import java.net.SocketException
 import java.time.Duration
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 
@@ -70,19 +72,18 @@ class VaultEnvPluginTest {
             Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(5))
         )
 
-
     @Test
     fun `sets env variables for marathon application`() {
         val vaultContext = VaultTestContext(getServiceURL("vault", VAULT_PORT))
         vaultContext.init()
 
         vaultContext.writeSecret(
-            "secret/mesos/${VaultTestContext.TEST_APP_NAME}/passwords",
+            "secrets_v1/mesos/${VaultTestContext.TEST_APP_NAME}/passwords",
             mapOf("some-secret-key" to "some-secret-value")
         )
 
         vaultContext.writeSecret(
-            "secret/mesos-custom/password",
+            "secrets_v1/mesos-custom/password",
             mapOf("some-secret-key" to "custom-secret-value")
         )
 
@@ -91,7 +92,7 @@ class VaultEnvPluginTest {
             cmd = "python3 /server.py $TEST_APP_PORT"
             env = mapOf("CUSTOM_SECRET" to mapOf("secret" to "secret-ref"))
             secrets =
-                mapOf("secret-ref" to SecretSource().apply { source = "secret/mesos-custom/password@some-secret-key" })
+                mapOf("secret-ref" to SecretSource().apply { source = "secrets_v1/mesos-custom/password@some-secret-key" })
         })
 
         val testAppURL = getServiceURL("mesos-slave", TEST_APP_PORT)

@@ -3,6 +3,9 @@ package io.funbox.marathon.plugin.vault.helpers
 import com.bettercloud.vault.Vault
 import com.bettercloud.vault.VaultConfig
 import com.bettercloud.vault.api.Logical
+import io.funbox.marathon.plugin.vault.VaultApi
+import kotlinx.serialization.json.JsonLiteral
+import kotlinx.serialization.json.JsonObject
 
 class VaultTestContext(vaultURL: String) {
 
@@ -19,6 +22,7 @@ class VaultTestContext(vaultURL: String) {
     }
 
     private val vaultClient = createVaultClient(vaultURL)
+    private val vaultAPI = VaultApi(vaultURL, ROOT_TOKEN)
 
     private fun createVaultClient(url: String): Logical {
         val config = VaultConfig()
@@ -32,6 +36,19 @@ class VaultTestContext(vaultURL: String) {
     fun init() {
         initPluginRoles()
         createTestAppRole()
+
+        mountSecretsEngine()
+    }
+
+    fun mountSecretsEngine() {
+        vaultAPI.mountSecretsEngine(
+            "secrets_v1", JsonObject(
+                mapOf(
+                    "type" to JsonLiteral("kv"),
+                    "version" to JsonLiteral(1)
+                )
+            )
+        )
     }
 
     fun initPluginRoles() {

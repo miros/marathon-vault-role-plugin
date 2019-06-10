@@ -3,18 +3,12 @@ package io.funbox.marathon.plugin.vault
 import com.bettercloud.vault.Vault
 import com.bettercloud.vault.VaultConfig
 import com.bettercloud.vault.VaultException
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.net.URL
 import java.time.Instant
-import java.util.concurrent.TimeUnit
-import kotlinx.serialization.*
-import kotlinx.serialization.json.Json
 
 class VaultClient private constructor(
     private val options: Options,
     private val vault: Vault,
-    private val token: String,
+    token: String,
     private val validUntil: Instant
 ) {
 
@@ -68,18 +62,7 @@ class VaultClient private constructor(
 
     }
 
-    private val httpClient = OkHttpClient.Builder()
-        .callTimeout(options.timeout.toLong(), TimeUnit.SECONDS)
-        .build()
-
-
-    private val apiURL = URL(URL(options.url), "v1")
-
-    @Serializable
-    data class VaultReply<T>(val data: T)
-
-    @Serializable
-    data class ListData(val keys: List<String> = emptyList())
+    private val vaultAPI = VaultApi(options.url, token, options.timeout.toLong())
 
     fun refresh(clock: () -> Instant = NOW): VaultClient {
         if (isFresh(clock)) {
@@ -98,15 +81,7 @@ class VaultClient private constructor(
     }
 
     fun listChildren(path: String): List<String> {
-        return try {
-            callVault<ListData>(preparePath(path), "LIST", ListData.serializer()).keys
-        } catch (exc: VaultException) {
-            if (exc.httpStatusCode == 404) {
-                emptyList()
-            } else {
-                throw(exc)
-            }
-        }
+        return vaultAPI.listChildren(path)
     }
 
     fun roleExists(roleName: String): Boolean {
@@ -148,27 +123,5 @@ class VaultClient private constructor(
         )
     }
 
-    private fun <T> callVault(path: String, method: String, serializer: KSerializer<T>): T {
-        val request = Request.Builder()
-            .url(appendURL(apiURL, path))
-            .header("X-Vault-Token", token)
-            .method(method, null)
-            .build()
-
-        val response = httpClient.newCall(request).execute()
-
-        if (!response.isSuccessful) {
-            throw VaultException(
-                "Vault responded with HTTP status code: ${response.code()} body:${response.body()?.string()}",
-                response.code()
-            )
-        }
-
-        return Json.nonstrict.parse(VaultReply.serializer(serializer), response.body()!!.string()).data
-    }
-
-    private fun appendURL(url: URL, vararg parts: String): URL {
-        return url.toURI().resolve(url.path + "/" + parts.joinToString("/")).toURL()
-    }
 
 }

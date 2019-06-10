@@ -2,6 +2,6 @@ path "auth/approle/role/mesos-*" {
 	capabilities = ["read", "update"]
 }
 
-path "secret/mesos*" {
+path "secrets_v1/mesos*" {
   capabilities = ["read", "list"]
 }

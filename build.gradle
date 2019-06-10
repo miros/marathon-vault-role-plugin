@@ -20,7 +20,7 @@ apply plugin: 'kotlinx-serialization'
 ext {
     marathonVersion = (System.getenv("MARATHON_VERSION") ?: "1.7.174")
     mesosVersion = (System.getenv("MESOS_VERSION") ?: "1.7.1")
-    vaultVersion = (System.getenv("VAULT_VERSION") ?: "0.9.6")
+    vaultVersion = (System.getenv("VAULT_VERSION") ?: "1.0.1")
 }
 
 repositories {
@@ -35,9 +35,11 @@ version = '0.0.5'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation "org.jetbrains.kotlin:kotlin-reflect"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.11.0"
+
     implementation "com.bettercloud:vault-java-driver:4.0.0"
     implementation "com.squareup.okhttp3:okhttp:3.14.0"
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.11.0"
 
     compileOnly "org.scala-lang:scala-library:2.12.8"
     compileOnly "org.slf4j:slf4j-api:1.7.10"
@@ -91,13 +93,13 @@ test {
 
 compileKotlin {
     kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict", "-Xuse-experimental=kotlin.Experimental,kotlin.ExperimentalUnsignedTypes,kotlinx.serialization.ImplicitReflectionSerializer"]
+        freeCompilerArgs = ["-Xjsr305=strict", "-Xuse-experimental=kotlin.Experimental,kotlin.ExperimentalUnsignedTypes,kotlinx.serialization.ImplicitReflectionSerializer,kotlinx.serialization.UnstableDefault"]
         jvmTarget = "1.8"
     }
 }
 compileTestKotlin {
     kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict", "-Xuse-experimental=kotlin.Experimental,kotlin.ExperimentalUnsignedTypes,kotlinx.serialization.ImplicitReflectionSerializer"]
+        freeCompilerArgs = ["-Xjsr305=strict", "-Xuse-experimental=kotlin.Experimental,kotlin.ExperimentalUnsignedTypes,kotlinx.serialization.ImplicitReflectionSerializer,kotlinx.serialization.UnstableDefault"]
         jvmTarget = "1.8"
     }
 }
