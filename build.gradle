@@ -18,7 +18,7 @@ plugins {
 apply plugin: 'kotlinx-serialization'
 
 ext {
-    marathonVersion = (System.getenv("MARATHON_VERSION") ?: "1.7.174")
+    marathonVersion = (System.getenv("MARATHON_VERSION") ?: "1.6.352")
     mesosVersion = (System.getenv("MESOS_VERSION") ?: "1.7.1")
     vaultVersion = (System.getenv("VAULT_VERSION") ?: "1.0.1")
 }
