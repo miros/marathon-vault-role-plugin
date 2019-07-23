@@ -31,14 +31,13 @@ repositories {
 }
 
 group = 'io.funbox'
-version = '0.0.6'
+version = '0.0.7'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.11.0"
 
-    implementation "com.bettercloud:vault-java-driver:4.0.0"
     implementation "com.squareup.okhttp3:okhttp:3.14.0"
 
     compileOnly "org.scala-lang:scala-library:2.12.8"

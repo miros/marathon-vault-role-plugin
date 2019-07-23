@@ -1,6 +1,5 @@
 package io.funbox.marathon.plugin.vault
 
-import com.bettercloud.vault.VaultException
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 
@@ -87,7 +86,7 @@ class EnvReader(private val conf: PluginConf) {
 
         val secrets = try {
             vault.readSecrets(path)
-        } catch (exc: VaultException) {
+        } catch (exc: VaultApi.Error) {
             logger.warn("error reading secret selector:$selector", exc)
             emptyMap<String, String>()
         }

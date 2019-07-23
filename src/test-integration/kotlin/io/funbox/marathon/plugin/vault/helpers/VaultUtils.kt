@@ -1,8 +1,5 @@
 package io.funbox.marathon.plugin.vault.helpers
 
-import com.bettercloud.vault.Vault
-import com.bettercloud.vault.VaultConfig
-import com.bettercloud.vault.api.Logical
 import io.funbox.marathon.plugin.vault.VaultApi
 import kotlinx.serialization.json.JsonLiteral
 import kotlinx.serialization.json.JsonObject
@@ -21,17 +18,7 @@ class VaultTestContext(vaultURL: String) {
         private const val TEST_APP_ROLE = "mesos-$TEST_APP_NAME"
     }
 
-    private val vaultClient = createVaultClient(vaultURL)
     private val vaultAPI = VaultApi(vaultURL, ROOT_TOKEN)
-
-    private fun createVaultClient(url: String): Logical {
-        val config = VaultConfig()
-            .address(url)
-            .token(ROOT_TOKEN)
-            .engineVersion(1)
-
-        return Vault(config.build()).logical()
-    }
 
     fun init() {
         initPluginRoles()
@@ -41,18 +28,11 @@ class VaultTestContext(vaultURL: String) {
     }
 
     fun mountSecretsEngine() {
-        vaultAPI.mountSecretsEngine(
-            "secrets_v1", JsonObject(
-                mapOf(
-                    "type" to JsonLiteral("kv"),
-                    "version" to JsonLiteral(1)
-                )
-            )
-        )
+        vaultAPI.mountSecretsEngine("secrets_v1", "kv", 1)
     }
 
     fun initPluginRoles() {
-        vaultClient.write("sys/auth/approle", mapOf("type" to "approle"))
+        callVault("sys/auth/approle", mapOf("type" to "approle"))
         createPluginRole()
     }
 
@@ -60,24 +40,24 @@ class VaultTestContext(vaultURL: String) {
 
         createPluginPolicy()
 
-        vaultClient.write(
+        callVault(
             "auth/approle/role/$PLUGIN_ROLE",
             mapOf("policies" to "plugin-policy")
         )
 
-        vaultClient.write(
+        callVault(
             "auth/approle/role/$PLUGIN_ROLE/role-id",
             mapOf("role_id" to PLUGIN_ROLE_ID)
         )
 
-        vaultClient.write(
+        callVault(
             "auth/approle/role/$PLUGIN_ROLE/custom-secret-id",
             mapOf("secret_id" to PLUGIN_SECRET_ID)
         )
     }
 
     private fun createPluginPolicy() {
-        vaultClient.write(
+        callVault(
             "sys/policy/$PLUGIN_POLICY", mapOf(
                 "policy" to javaClass.getResource("/test-policy.hcl").readText()
             )
@@ -85,14 +65,23 @@ class VaultTestContext(vaultURL: String) {
     }
 
     fun createTestAppRole(roleName: String = TEST_APP_ROLE) {
-        vaultClient.write(
+        callVault(
             "auth/approle/role/$roleName",
             mapOf("policies" to PLUGIN_POLICY)
         )
     }
 
     fun writeSecret(path: String, secrets: Map<String, String>) {
-        vaultClient.write(path, secrets)
+        callVault(path, secrets)
+    }
+
+    private fun callVault(path: String, params: Map<String, String>) {
+        vaultAPI.callVault<Nothing>(
+            "POST", path,
+            requestParams = JsonObject(
+                params.mapValues { JsonLiteral(it.value) }
+            )
+        )
     }
 
 }

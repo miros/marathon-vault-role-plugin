@@ -1,6 +1,5 @@
 package io.funbox.marathon.plugin.vault
 
-import com.bettercloud.vault.VaultException
 import mesosphere.marathon.plugin.ApplicationSpec
 import mesosphere.marathon.plugin.EnvVarSecretRef
 import mesosphere.marathon.plugin.PodSpec
@@ -40,7 +39,7 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
             setEnvs(result.allSecrets, builder)
 
-        } catch (exc: VaultException) {
+        } catch (exc: VaultApi.Error) {
             logger.warn("error injecting vault secrets for appID:${appSpec.id()}", exc)
         } catch (exc: EnvReader.NoVaultRoleError) {
             logger.warn("secrets not injected appID:${appSpec.id()}", exc)
