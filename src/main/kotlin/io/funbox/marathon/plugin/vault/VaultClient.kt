@@ -77,7 +77,7 @@ class VaultClient private constructor(
         val secretID = generateSecretID(roleName)
         val newClient = login(options.copy(roleID = roleID, secretID = secretID))
 
-        return block(newClient).also { newClient.logout(roleName, secretID) }
+        return block(newClient).also { logout(roleName, secretID) }
     }
 
     private fun getAppRoleID(roleName: String): String {
