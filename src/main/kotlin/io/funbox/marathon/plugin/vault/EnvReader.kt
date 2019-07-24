@@ -48,6 +48,8 @@ class EnvReader(private val conf: PluginConf) {
         while (parts.isNotEmpty()) {
             val role = roleNameForMarathonID(parts.joinToString("/"))
 
+            logger.info("VaultEnvPlugin trying role:$role")
+
             if (rootVault.roleExists(role)) {
                 return role
             }
