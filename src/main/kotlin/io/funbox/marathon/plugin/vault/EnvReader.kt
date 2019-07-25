@@ -1,5 +1,7 @@
 package io.funbox.marathon.plugin.vault
 
+import io.funbox.marathon.plugin.vault.vault_client.VaultApi
+import io.funbox.marathon.plugin.vault.vault_client.VaultClient
 import org.slf4j.LoggerFactory
 import java.nio.file.Paths
 
@@ -28,9 +30,10 @@ class EnvReader(private val conf: PluginConf) {
             return _rootVault!!
         }
 
-    fun envsFor(appID: String, customSecrets: Map<String, String>): Envs {
-        val appRole = roleFor(appID) ?: throw NoVaultRoleError("no role in vault for appID:$appID")
-        val defaultSecretsPath = defaultSecretsPath(appID)
+    fun envsFor(taskID: String, customSecrets: Map<String, String>, labels: Map<String, String>): Envs {
+        val appName = appNameFor(taskID, labels)
+        val appRole = roleFor(appName) ?: throw NoVaultRoleError("no role in vault for appName:$appName")
+        val defaultSecretsPath = defaultSecretsPath(appName)
 
         logger.info("VaultEnvPlugin default secrets path:$defaultSecretsPath")
 
@@ -42,22 +45,30 @@ class EnvReader(private val conf: PluginConf) {
         }
     }
 
-    private fun roleFor(appID: String): String? {
-        var parts = appID.trimStart('/').split('/')
+    private fun appNameFor(taskID: String, labels: Map<String, String>): String {
+        return appNameFromLabel(labels) ?: appNameFromID(taskID)
+    }
 
-        while (parts.isNotEmpty()) {
-            val role = roleNameForMarathonID(parts.joinToString("/"))
+    private fun appNameFromID(taskID: String): String {
+        return taskID.trimStart('/').split('/').first()
+    }
 
-            logger.info("VaultEnvPlugin trying role:$role")
+    private fun appNameFromLabel(labels: Map<String, String>): String? {
+        conf.appNameLabel ?: return null
+        return labels[conf.appNameLabel]
+    }
 
-            if (rootVault.roleExists(role)) {
-                return role
-            }
+    private fun roleFor(appName: String): String? {
+        val parts = appName.trimStart('/').split('/')
+        val role = roleNameForMarathonID(parts.joinToString("/"))
 
-            parts = parts.dropLast(1)
+        logger.info("VaultEnvPlugin trying role:$role")
+
+        if (!rootVault.roleExists(role)) {
+            return null
         }
 
-        return null
+        return role
     }
 
     private fun envsForDefaultSecrets(vault: VaultClient, path: String): Map<String, String> {
@@ -98,8 +109,8 @@ class EnvReader(private val conf: PluginConf) {
 
     private fun isDirectory(path: String) = path.endsWith("/")
 
-    private fun defaultSecretsPath(marathonID: String) =
-        Paths.get(conf.defaultSecretsPath, marathonID.trimStart('/')).toString()
+    private fun defaultSecretsPath(appID: String) =
+        Paths.get(conf.defaultSecretsPath, appID.trimStart('/')).toString()
 
     private fun roleNameForMarathonID(marathonID: String): String {
         val prefix = if (conf.rolePrefix.isBlank()) {

@@ -4,9 +4,25 @@ import play.api.libs.json._
 
 class Json(json: JsObject) {
 
-  def tryStr(path: String): String = getValue(path).as[String]
+  def tryStr(path: String): String = {
+    val value = getValue(path)
 
-  def tryInt(path: String): Int = getValue(path).as[Int]
+    if (value == null) {
+      return null
+    }
+
+    value.as[String]
+  }
+
+  def tryInt(path: String): Integer = {
+    val value = getValue(path)
+
+    if (value == null) {
+      return null
+    }
+
+    value.as[Int]
+  }
 
   def getStr(path: String): String = requireValue(path).as[String]
 

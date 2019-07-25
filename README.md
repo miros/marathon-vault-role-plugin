@@ -6,19 +6,26 @@ Plugin for [Marathon](https://mesosphere.github.io/marathon/) that injects secre
 
 Plugin uses vault approles both for itself (it knows how to renew its SecretId) and for fetching secrets for marathon applications.
 
-Role names for marathon applications are formed as following: `{role_prefix_from_config}-{marathon_app_id}`.
+Role names for marathon applications are formed as following: `{role_prefix_from_config}-{app_id}`.
 
-For instance, when `role_prefix` is `mesos` and marathon app id is `/apps/my-doge-app`, Vault approle for application will be `mesos-apps-my-doge-app`.
-In case this role does not exist plugin will try to use `mesos-apps` as vault approle (one level up marathon app id path).
+`app_id` is by default a first segment of marathon app id.
+You can change default `app_id` for any task by supplying custom mesos label.
+Label name is configured by `app_name_label` option in plugin configuration.
+
+For instance, when `role_prefix` is `mesos` and marathon app id is `/my-doge-app/some-cmd`, Vault approle for application will be `mesos-my-doge-app`.
 
 *You need to create roles in vault for you applications by yourself.*
 
 ## Default secrets path
 
-By default plugin injects all secrets defined in vault path: `/{default_secrets_path_from_config}/{marathon-app-id}/*` (but only one level deep, immediate children)
+By default plugin injects all secrets defined in vault path: `/{default_secrets_path_from_config}/{app_id}/*` (but only one level deep, immediate children)
 
-For instance, when `default_secrets_path=mesos` (in plugin config) and `marathon_app_id=/apps/my-doge-app`
-then secrets defined in vault path `/mesos/apps/my-doge-app/passwords` will be available as ENV variables `$PASSWORDS_SOME_KEY_NAME`, `$PASSWORDS_OTHER_KEY_NAME`, etc...
+`app_id` is by default a first segment of marathon app id.
+You can change default `app_id` for any task by supplying custom mesos label.
+Label name is configured by `app_name_label` option in plugin configuration.
+
+For instance, when `default_secrets_path=mesos` (in plugin config) and `app_id=my-doge-app`
+then secrets defined in vault path `/mesos/my-doge-app/passwords` will be available as ENV variables `$PASSWORDS_SOME_KEY_NAME`, `$PASSWORDS_OTHER_KEY_NAME`, etc...
 
 *Ensure that approle for marathon application (you should create role yourself) has permissions to read these paths.*
 
@@ -68,6 +75,9 @@ The plugin configuration JSON file will need to reference the Vault plugin as fo
         "role_prefix": "mesos",
 
         "default_secrets_path": "/secret/mesos"
+        
+        // optional: name of mesos label for custom app id
+        // app_name_label: "app"
       }
     }
   }
@@ -80,10 +90,10 @@ You will also need to start Marathon with the secrets feature being enabled. See
 
 ## Vault plugin role policy
 
-In order to work plugin role needs permissions to read AppIds and issue SecretIds for roles with your `role_prefix` path (plugin config)
+In order to work plugin role needs permissions to read RoleIds and issue SecretIds for roles with your `ROLE_PREFIX` path (plugin config)
 
 ```hcl
-path "auth/approle/role/role_prefix-*" {
+path "auth/approle/role/ROLE_PREFIX-*" {
 	capabilities = ["read", "update"]
 }
 ```

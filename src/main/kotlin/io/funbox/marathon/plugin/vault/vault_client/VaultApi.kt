@@ -1,4 +1,4 @@
-package io.funbox.marathon.plugin.vault
+package io.funbox.marathon.plugin.vault.vault_client
 
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.StringSerializer

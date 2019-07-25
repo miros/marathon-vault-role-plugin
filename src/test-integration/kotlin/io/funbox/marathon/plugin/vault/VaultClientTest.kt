@@ -1,6 +1,7 @@
 package io.funbox.marathon.plugin.vault
 
 import io.funbox.marathon.plugin.vault.helpers.VaultTestContext
+import io.funbox.marathon.plugin.vault.vault_client.VaultClient
 import org.assertj.core.api.Assertions.assertThat
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.junit.jupiter.Container

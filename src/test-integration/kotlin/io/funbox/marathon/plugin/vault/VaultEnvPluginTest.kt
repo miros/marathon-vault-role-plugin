@@ -57,19 +57,19 @@ class VaultEnvPluginTest {
         .withTailChildContainers(true)
         .withExposedService(
             "vault", VAULT_PORT,
-            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(5))
+            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(10))
         )
         .withExposedService(
             "mesos-master", MESOS_MASTER_PORT,
-            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(5))
+            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(10))
         )
         .withExposedService(
             "mesos-slave", MESOS_SLAVE_PORT,
-            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(5))
+            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(10))
         )
         .withExposedService(
             "marathon", MARATHON_PORT,
-            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(5))
+            Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(10))
         )
 
     @Test

@@ -1,6 +1,6 @@
 package io.funbox.marathon.plugin.vault.helpers
 
-import io.funbox.marathon.plugin.vault.VaultApi
+import io.funbox.marathon.plugin.vault.vault_client.VaultApi
 import kotlinx.serialization.json.JsonLiteral
 import kotlinx.serialization.json.JsonObject
 
@@ -20,9 +20,9 @@ class VaultTestContext(vaultURL: String) {
 
     private val vaultAPI = VaultApi(vaultURL, ROOT_TOKEN)
 
-    fun init() {
+    fun init(roleName: String = TEST_APP_ROLE) {
         initPluginRoles()
-        createTestAppRole()
+        createTestAppRole(roleName)
 
         mountSecretsEngine()
     }

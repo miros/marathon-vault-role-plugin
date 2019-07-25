@@ -1,9 +1,12 @@
 package io.funbox.marathon.plugin.vault
 
+import io.funbox.marathon.plugin.vault.vault_client.VaultClient
+
 data class PluginConf(
     val vaultOptions: VaultClient.Options,
     val rolePrefix: String,
-    val defaultSecretsPath: String
+    val defaultSecretsPath: String,
+    val appNameLabel: String?
 ) {
     companion object {
 
@@ -16,7 +19,8 @@ data class PluginConf(
                     secretID = json.getStr("plugin_secret_id")
                 ),
                 rolePrefix = json.getStr("role_prefix"),
-                defaultSecretsPath = json.getStr("default_secrets_path")
+                defaultSecretsPath = json.getStr("default_secrets_path"),
+                appNameLabel = json.tryStr("app_name_label")
             )
         }
 

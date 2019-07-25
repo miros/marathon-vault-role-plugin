@@ -1,4 +1,4 @@
-package io.funbox.marathon.plugin.vault
+package io.funbox.marathon.plugin.vault.vault_client
 
 import java.time.Instant
 
@@ -75,7 +75,12 @@ class VaultClient private constructor(
     fun <T> loginAs(roleName: String, block: (VaultClient) -> T): T {
         val roleID = getAppRoleID(roleName)
         val secretID = generateSecretID(roleName)
-        val newClient = login(options.copy(roleID = roleID, secretID = secretID))
+        val newClient = login(
+            options.copy(
+                roleID = roleID,
+                secretID = secretID
+            )
+        )
 
         return block(newClient).also { logout(roleName, secretID) }
     }

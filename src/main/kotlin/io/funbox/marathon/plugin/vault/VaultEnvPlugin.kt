@@ -1,5 +1,6 @@
 package io.funbox.marathon.plugin.vault
 
+import io.funbox.marathon.plugin.vault.vault_client.VaultApi
 import mesosphere.marathon.plugin.ApplicationSpec
 import mesosphere.marathon.plugin.EnvVarSecretRef
 import mesosphere.marathon.plugin.PodSpec
@@ -23,15 +24,16 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
 
     override fun taskInfo(appSpec: ApplicationSpec, builder: Protos.TaskInfo.Builder) {
         logger.info(
-            "VaultEnvPlugin triggered for appID:{}",
+            "VaultEnvPlugin triggered for taskID:{}",
             appSpec.id()
         )
 
         try {
-            val result = envReader.envsFor(appSpec.id().toString(), customSecrets(appSpec))
+            val taskLabels = JavaConverters.mapAsJavaMap(appSpec.labels())
+            val result = envReader.envsFor(appSpec.id().toString(), customSecrets(appSpec), taskLabels)
 
             logger.info(
-                "injecting vault secrets for appID:{} appRole:{} secrets:{}",
+                "injecting vault secrets for taskID:{} appRole:{} secrets:{}",
                 appSpec.id(),
                 result.appRole,
                 result.allNames.joinToString(",")
@@ -40,9 +42,9 @@ class VaultEnvPlugin : RunSpecTaskProcessor, PluginConfiguration {
             setEnvs(result.allSecrets, builder)
 
         } catch (exc: VaultApi.Error) {
-            logger.warn("error injecting vault secrets for appID:${appSpec.id()}", exc)
+            logger.warn("error injecting vault secrets for taskID:${appSpec.id()}", exc)
         } catch (exc: EnvReader.NoVaultRoleError) {
-            logger.warn("secrets not injected appID:${appSpec.id()}", exc)
+            logger.warn("secrets not injected taskID:${appSpec.id()}", exc)
         }
     }
 
